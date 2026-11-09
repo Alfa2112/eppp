@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Phonetics Lab: Interactive English IPA Module</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800&family=Noto+Serif:wght@400;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="login">
+ <div class="lbox">
+  <h2>Phonetics Lab</h2><p>Sign in to start the module. Your name and class number are recorded for this class activity.</p>
+  <form id="lf">
+   <label for="sn">Full name</label><input id="sn" required placeholder="e.g. M. Alfarabi" autocomplete="name">
+   <label for="sno">Class number</label><input id="sno" type="number" min="1" required placeholder="e.g. 12">
+   <button class="go" type="submit">Start learning</button>
+  </form>
+ </div>
+</div>
+
+<div id="app" class="hide">
+ <header>
+  <button id="adm" class="adm" onclick="adminBtn()">Admin</button>
+  <h1>Interactive IPA Pronunciation</h1>
+  <div class="prog"><i id="bar"></i></div><div id="ptxt"></div>
+  <nav id="nav" aria-label="Sections"></nav>
+ </header>
+ <main>
+  <section id="home" class="pg on">
+   <h2>Welcome, <span id="wn"></span>!</h2>
+   <p class="lead">Learn the 44 sounds of standard British English, from 12 monophthongs and 8 diphthongs to 24 consonants. Tap any sound to hear an example word, see how to shape your mouth, record yourself, and rate your confidence. Learn in order: record every sound in a group to unlock the next one.</p>
+   <div class="box" id="path" style="margin-top:20px"></div>
+   <div class="tiles">
+    <button class="tile" onclick="go('learn')"><b>Sounds</b><span>Cards for every vowel and consonant, with audio and mouth tips.</span></button>
+    <button class="tile" onclick="go('chart')"><b>Vowel Chart</b><span>See where each vowel sits in the mouth.</span></button>
+    <button class="tile" onclick="go('pairs')"><b>Minimal Pairs</b><span>Train your ears: sheep or ship?</span></button>
+    <button class="tile" onclick="go('cards')"><b>Flashcards</b><span>Flip through all 44 sounds.</span></button>
+    <button class="tile" onclick="go('quiz')"><b>Quiz</b><span>10 random questions, with feedback.</span></button>
+    <button class="tile" onclick="go('port')"><b>Portfolio</b><span>Your self-assessment and best score.</span></button>
+   </div>
+   <p class="lead" style="margin-top:20px;font-size:.9rem">Audio uses your browser’s built-in English voice, so it may sound slightly different on each device.</p>
+  </section>
+
+  <section id="learn" class="pg">
+   <h2>Sounds</h2><p class="lead" id="lm"></p>
+   <div class="seg" id="seg"></div><div class="grid" id="grid"></div>
+  </section>
+
+  <section id="chart" class="pg">
+   <h2>Vowel Chart</h2><p class="lead">The chart shows where your tongue sits for each monophthong. Tap a symbol to hear it.</p>
+   <div class="cw"><span class="ax" style="left:0;top:0">Close</span><span class="ax" style="left:0;bottom:0">Open</span>
+    <div class="vc" id="vc"><svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,0 100,0 100,100 38,100"/></svg></div>
+    <div class="ax" style="left:34px;top:-20px">Front</div><div class="ax" style="right:0;top:-20px">Back</div></div>
+   <h2 style="margin-top:28px">Diphthongs</h2><p class="lead">Each diphthong glides from one vowel to another.</p>
+   <div class="chips" id="dc"></div>
+  </section>
+
+  <section id="pairs" class="pg">
+   <h2>Minimal Pairs</h2><p class="lead">Words that differ by one sound. Listen to both, then play the game.</p>
+   <div class="box"><h3>Listening game</h3>
+    <div class="msg" id="pgm"></div><div class="opts" id="pgo"></div>
+    <div class="ctl"><button class="btn" onclick="say(PW[PA])">Play again</button><button class="btn pri" id="pgn" onclick="nextPair()">Next</button></div>
+    <p class="msg" id="pgs"></p></div>
+   <div class="box"><h3>All pairs</h3><div id="pl"></div></div>
+  </section>
+
+  <section id="cards" class="pg">
+   <h2>Flashcards</h2><p class="lead">Guess the example word, then flip the card.</p>
+   <button class="fc" id="fc" onclick="flipC()" aria-label="Flip card"><div><i><b id="fF"></b></i><i id="fB"></i></div></button>
+   <p class="msg" id="fn" style="text-align:center"></p>
+   <div class="ctl"><button class="btn" onclick="moveC(-1)">Previous</button><button class="btn" onclick="flipC()">Flip</button><button class="btn" onclick="say(deck[di].w)">Listen</button><button class="btn" onclick="moveC(1)">Next</button><button class="btn pri" onclick="deck=shuf(ALL);di=0;fl=0;renderCard()">Shuffle</button></div>
+  </section>
+
+  <section id="quiz" class="pg">
+   <h2>Pronunciation Quiz</h2>
+   <div class="box" id="qBox">
+    <div class="qbar"><i id="qp"></i></div><div id="qn" class="msg"></div>
+    <p class="q" id="qt"></p><div id="qa"></div><div class="opts" id="qo"></div>
+    <div class="msg" id="qf"></div><button class="btn pri hide" id="qx">Next question</button>
+   </div>
+   <div class="box hide" id="qR">
+    <h3>Quiz completed</h3><p id="rn"></p><p class="big" id="rs"></p><p class="msg" id="rm"></p><div id="rw"></div>
+    <button class="btn pri" onclick="startQuiz()" style="margin-top:14px">Try again</button>
+   </div>
+  </section>
+
+  <section id="port" class="pg">
+   <h2>My Pronunciation Portfolio</h2><p class="lead" id="pi"></p>
+   <div class="box"><div id="ps"></div><table id="pt"></table></div>
+   <button class="btn pri" onclick="window.print()">Print or save as PDF</button>
+  </section>
+ </main>
+</div>
+
+<div id="toast" class="toast hide" role="status"></div>
+<dialog id="adlg">
+ <form id="af">
+  <h3>Admin</h3><p style="color:var(--mu);margin:6px 0 12px">Enter the admin password to unlock every section.</p>
+  <input id="apw" type="password" autocomplete="off" required placeholder="Password" aria-label="Admin password">
+  <div class="msg" id="amsg"></div>
+  <div class="ctl"><button class="btn pri" type="submit">Unlock</button><button class="btn" type="button" onclick="$('adlg').close()">Cancel</button></div>
+ </form>
+</dialog>
+<dialog id="dlg">
+ <div id="dK"></div><div id="dS"></div><div id="dW"></div><div id="dT" class="ipa"></div>
+ <p id="dTip"></p>
+ <div class="ctl"><button class="btn pri" id="bN" onclick="playD(.9)">Normal</button><button class="btn" id="bS" onclick="playD(.5)">Slow</button><button class="btn" id="rb" onclick="rec(this)">Record yourself</button></div>
+ <div class="msg" id="rm2"></div><audio id="ra" controls class="hide"></audio>
+ <a id="rd" class="btn hide" download>Download recording</a>
+ <div class="rt" id="rt"><button data-v="1">Need practice</button><button data-v="2">Getting there</button><button data-v="3">Confident</button></div>
+ <button class="btn" onclick="dlg.close()">Close</button>
+</dialog>
+
+<script src="script.js"></script>
+</body>
+</html>
