@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 /* Paste your Google Apps Script Web App URL (ends with /exec) between the quotes to record logins and quiz scores. */
-const SHEET_URL='https://script.google.com/macros/s/AKfycbzTSPLDrh7sB8meN0x4gh0vfesL97xqpsbBNEHQEai1al2UjGFwCjP4cMRAPUOtR5io/exec';
+const SHEET_URL='https://script.google.com/macros/s/AKfycbwB7xUxGcw8-XjiSX579V04csNUNszDXpAsj2GzdwPpTuvCbzmcgji9BfL3h62NuuY3Qw/exec';
 const ADMIN_HASH='8d008f8b98c07ba5072c02dc108351f872260bb6af85a016253f2e084909eba5'; /* SHA-256 of the admin password */
 /* true = students must record every sound in order to unlock the next step. Set to false to open every section. */
 const REQUIRE_RECORDING=true;
@@ -77,7 +77,7 @@ l|r|light|right`.split('\n').map(l=>{const[a,b,x,y]=l.split('|');return{a,b,x,y}
 const QB=`Which word contains the vowel sound /æ/?|Cat|Car|Cup|Cot|0|“cat” is /kæt/. “Car” has /ɑː/, “cup” has /ʌ/, “cot” has /ɒ/.|
 Which word contains the diphthong /aɪ/?|Boy|Wait|My|Cow|2|“my” is /maɪ/. “Boy” has /ɔɪ/, “wait” has /eɪ/, “cow” has /aʊ/.|
 What is the first sound in “shoe”?|/s/|/ʃ/|/tʃ/|/ʒ/|1|“shoe” is /ʃuː/, a voiceless fricative.|
-The symbol /θ/ appears in which word?|This|Thin|Tin|Then|1|“thin” is /θɪn/. “This” and “then” start with the voiced /ð/.|
+The symbol /θ/ appears in which word?|This|Thin|Thin|Then|1|“thin” is /θɪn/. “This” and “then” start with the voiced /ð/.|
 The weak, relaxed vowel /ə/ is called…|Schwa|Diphthong|Plosive|Fricative|0|/ə/ is the schwa, the most common vowel sound in English.|
 How many monophthongs are in standard British English?|8|12|20|24|1|There are 12 monophthongs, 8 diphthongs and 24 consonants.|
 Which of these is a long vowel?|/ɪ/|/iː/|/ʊ/|/e/|1|The mark ː shows length, so /iː/ is long.|
@@ -87,7 +87,7 @@ Which pair is a minimal pair?|ship – sheep|cat – dog|bed – table|my – co
 Which word contains the consonant /ŋ/?|Sing|Sin|Sit|Six|0|“sing” is /sɪŋ/, with the nasal /ŋ/ at the end.|
 Which diphthong is in “coin”?|/ɔɪ/|/aɪ/|/eɪ/|/ʊə/|0|“coin” is /kɔɪn/.|`.split('\n').map(l=>{const a=l.split('|');return{q:a[0],o:a.slice(1,5),a:+a[5],x:a[6],say:a[7]}});
 
-let user=ld('user',null),seen=new Set(ld('seen',[])),recd=new Set(ld('recd',[])),rate=ld('rate',{}),best=ld('best',0),cur=null;
+let user=ld('user',null),seen=new Set(ld('seen',[])),recd=new Set(ld('recd',[])),rate=ld('rate',{}),best=ld('best',0),escDone=ld('escDone',false),cur=null;
 let admin=false;try{admin=sessionStorage.getItem('admin')==='1'}catch(e){}
 
 /* audio */
@@ -98,10 +98,14 @@ function say(w,r=.9){if(!window.speechSynthesis)return;speechSynthesis.cancel();
 
 /* login + navigation */
 $('lf').onsubmit=e=>{e.preventDefault();user={n:$('sn').value.trim(),no:$('sno').value};sv('user',user);enter();logEvent('login')};
-const PAGES=[['home','Home'],['learn','Sounds'],['chart','Vowel Chart'],['pairs','Minimal Pairs'],['cards','Flashcards'],['quiz','Quiz'],['port','Portfolio']];
-const R={home:renderPath,learn:()=>renderLearn(true),chart:renderChart,pairs:renderPairs,cards:renderCard,quiz:startQuiz,port:renderPort};
+function logout(){if(confirm('Are you sure you want to log out? This will clear your progress on this device.')){
+ ['user','seen','recd','rate','best','escDone'].forEach(k=>localStorage.removeItem(k));
+ location.reload()
+}}
+const PAGES=[['home','Home'],['learn','Sounds'],['chart','Vowel Chart'],['pairs','Minimal Pairs'],['cards','Flashcards'],['quiz','Quiz'],['escape','Escape Room'],['port','Portfolio']];
+const R={home:renderPath,learn:()=>renderLearn(true),chart:renderChart,pairs:renderPairs,cards:renderCard,quiz:startQuiz,escape:renderEscape,port:renderPort};
 const GROUPS=[['Monophthong','Monophthongs'],['Diphthong','Diphthongs'],['Consonant','Consonants']];
-const GATED=['chart','pairs','cards','quiz'];
+const GATED=['chart','pairs','cards','quiz','escape'];
 const cnt=k=>ALL.filter(x=>x.k===k).length,got=k=>ALL.filter(x=>x.k===k&&recd.has(x.s)).length,done=k=>got(k)===cnt(k);
 const allDone=()=>GROUPS.every(g=>done(g[0]));
 const gi=k=>GROUPS.findIndex(g=>g[0]===k);
@@ -113,9 +117,27 @@ function burst(){if(window.matchMedia&&matchMedia('(prefers-reduced-motion: redu
  const c=el('div','','burst');($('dlg').open?$('dlg'):document.body).append(c);
  for(let i=0;i<30;i++){const p=el('i');p.style.cssText=`left:${45+Math.random()*10}%;--x:${(Math.random()-.5)*90}vw;--y:${-(18+Math.random()*34)}vh;--r:${Math.random()*720-360}deg;background:${['#14B8A6','#2DD4BF','#F8FAFC','#fde68a'][i%4]};animation-delay:${Math.random()*.12}s`;c.append(p)}
  setTimeout(()=>c.remove(),1900)}
-function enter(){$('login').classList.add('hide');$('app').classList.remove('hide');$('wn').textContent=user.n;
- if(!$('nav').children.length)PAGES.forEach(([id,l])=>{const b=el('button',l);b.dataset.p=id;b.dataset.l=l;b.onclick=()=>go(id);$('nav').append(b)});
- grp=firstOpen();adminUI();prog();go('home')}
+function enter(){
+ $('login').classList.add('hide');$('app').classList.remove('hide');$('wn').textContent=user.n;
+ if(!$('nav').children.length){
+  const groups = [
+   { l: '', p: [['home','Home']] },
+   { l: '📚 Materials', p: [['learn','Sounds'],['chart','Vowel Chart'],['pairs','Minimal Pairs']] },
+   { l: '🎮 Games', p: [['cards','Flashcards'],['quiz','Quiz'],['escape','Escape Room']] },
+   { l: '📈 Report', p: [['port','Portfolio']] }
+  ];
+  groups.forEach(g => {
+   const wrap = el('div', '', 'nav-grp');
+   if(g.l) wrap.append(el('span', g.l, 'nav-lbl'));
+   g.p.forEach(([id,l]) => {
+    const b = el('button', l); b.dataset.p = id; b.dataset.l = l; b.onclick = () => go(id);
+    wrap.append(b);
+   });
+   $('nav').append(wrap);
+  });
+ }
+ grp=firstOpen();adminUI();prog();go('home');
+}
 function navState(){document.querySelectorAll('#nav button').forEach(b=>{const lk=locked(b.dataset.p);b.disabled=lk;b.textContent=(lk?'🔒 ':'')+b.dataset.l;b.title=lk?'Record all 44 sounds to unlock':''})}
 function go(id){if(locked(id)){toast('Record all 44 sounds, in order, to unlock this section.');return}
  document.querySelectorAll('.pg').forEach(p=>p.classList.toggle('on',p.id===id));
@@ -125,7 +147,7 @@ function prog(){const n=recd.size,t=ALL.length;$('bar').style.width=n/t*100+'%';
 function renderPath(){const p=$('path');p.innerHTML='<h3>Your learning path</h3>';
  GROUPS.forEach(([k,l],i)=>{const st=done(k)?'Complete':isOpen(k)?'In progress':'Locked';
   p.append(el('div',`<span><b>${i+1}. ${l}</b></span><span>${got(k)} of ${cnt(k)} recorded · ${st}</span>`,'step'))});
- p.append(el('div',`<span><b>4. Practice and quiz</b></span><span>${allDone()?'Unlocked':'Locked until all 44 sounds are recorded'}</span>`,'step'));
+ p.append(el('div',`<span><b>4. Practice and games</b></span><span>${allDone()?'Unlocked':'Locked until all 44 sounds are recorded'}</span>`,'step'));
  const b=el('button',allDone()?'Go to the quiz':'Continue learning','btn pri');b.style.marginTop='14px';b.onclick=()=>go(allDone()?'quiz':'learn');p.append(b)}
 
 /* sounds */
@@ -144,9 +166,13 @@ function setSpeed(r){$('bN').classList.toggle('pri',r!==.5);$('bS').classList.to
 function playD(r){setSpeed(r);say(cur.w,r);beat()}
 function openD(x){cur=x;$('dK').textContent=x.k;$('dS').textContent='/'+x.s+'/';$('dW').textContent=x.w;$('dT').textContent='/'+x.t+'/';$('dTip').textContent=x.tip;
  $('ra').classList.add('hide');$('rd').classList.add('hide');$('rm2').textContent=recd.has(x.s)?'Recorded ✓':'';$('rb').textContent=recd.has(x.s)?'Record again':'Record yourself';setSpeed(.9);markRate();
+ $('dlgRateHint').textContent = rate[cur.s] ? 'Your self-assessment:' : '💡 Rate your confidence to add this to your Portfolio!';
  seen.add(x.s);sv('seen',[...seen]);prog();$('dlg').showModal();say(x.w);beat()}
 $('dlg').onclose=()=>{if(mr&&mr.state==='recording')mr.stop();if(jump){grp=jump;jump=null}if($('learn').classList.contains('on'))renderLearn()};
-function markRate(){[...$('rt').children].forEach(b=>b.classList.toggle('on',rate[cur.s]===+b.dataset.v))}
+function markRate(){
+ [...$('rt').children].forEach(b=>b.classList.toggle('on',rate[cur.s]===+b.dataset.v));
+ if(rate[cur.s]) $('dlgRateHint').textContent = 'Your self-assessment:';
+}
 [...$('rt').children].forEach(b=>b.onclick=()=>{rate[cur.s]=+b.dataset.v;sv('rate',rate);markRate()});
 let mr=null,ch=[];
 async function rec(b){const x=cur;try{
@@ -160,7 +186,7 @@ async function rec(b){const x=cur;try{
   let m='Recorded ✓ Compare your recording with the model audio.';
   if(!was&&done(x.k)){const i=gi(x.k),nx=GROUPS[i+1];logEvent('done-'+x.k,{explored:recd.size});burst();lastUnlock=nx?nx[0]:null;
    if(nx){jump=nx[0];m=`Recorded ✓ All ${GROUPS[i][1].toLowerCase()} done! ${nx[1]} is unlocked. Close this panel to continue.`}
-   else m='Recorded ✓ All 44 sounds done! Vowel Chart, Minimal Pairs, Flashcards and Quiz are unlocked.'}
+   else m='Recorded ✓ All 44 sounds done! Vowel Chart, Minimal Pairs, Flashcards, Escape Room and Quiz are unlocked.'}
   $('rm2').textContent=m;
   if(!$('dlg').open&&$('learn').classList.contains('on')){if(jump){grp=jump;jump=null}renderLearn()}};
  mr.start();b.classList.add('recing');b.textContent='Stop recording'
@@ -217,12 +243,78 @@ function finishQuiz(){$('qBox').classList.add('hide');$('qR').classList.remove('
  $('rm').textContent=sc>=9?'Excellent! Your ears are well tuned.':sc>=7?'Good work. Review the sounds you missed.':'Keep practising. Revisit the Sounds and Minimal Pairs sections.';
  $('rw').innerHTML=wr.length?'<h3>Review</h3>'+wr.map(q=>`<p><b>${q.q}</b><br>${q.x}</p>`).join(''):''}
 
+/* escape room */
+let escS = { pc: 0, safe: 0, radio: 0, poster: 0 };
+function renderEscape() {
+ $('escIntro').classList.remove('hide');
+ $('escGame').classList.add('hide');
+ $('escDialog').classList.add('hide');
+}
+function escTap(id) {
+ const d = $('escDialog'); d.classList.remove('hide');
+ let h = '';
+ if (id === 'door') {
+  h = `<h3>🚪 Main Door</h3><p>The door is locked with a digital keypad.</p>
+       <input id="escPin" type="number" placeholder="4-digit PIN" style="padding:10px;margin:12px 0;width:100%;max-width:220px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);font-size:1.2rem;letter-spacing:4px">
+       <br><button class="btn pri" onclick="escCheckPin()">Unlock Door</button> <p class="msg" id="escPinMsg" style="margin-top:10px"></p>`;
+ } else if (id === 'pc') {
+  if (escS.pc) h = `<h3>💻 Computer</h3><p>Screen unlocked. <b>First digit: 4</b></p>`;
+  else h = `<h3>💻 Computer</h3><p>Password hint: Which symbol represents the voiceless palato-alveolar fricative in "shoe"?</p>
+       <div class="opts"><button class="opt" onclick="escCheck('pc','s')">/s/</button><button class="opt" onclick="escCheck('pc','ʃ')">/ʃ/</button><button class="opt" onclick="escCheck('pc','tʃ')">/tʃ/</button></div>`;
+ } else if (id === 'safe') {
+  if (escS.safe) h = `<h3>🗄️ Safe</h3><p>Safe opened. <b>Second digit: 8</b></p>`;
+  else h = `<h3>🗄️ Safe</h3><p>Type the English word for the transcription <b>/bɜːd/</b></p>
+       <input id="escSafeAns" type="text" placeholder="Word" style="padding:10px;margin:12px 0;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--tx);text-transform:lowercase">
+       <br><button class="btn" onclick="escCheck('safe',$('escSafeAns').value.trim().toLowerCase())">Open Safe</button>`;
+ } else if (id === 'radio') {
+  if (escS.radio) h = `<h3>📻 Radio</h3><p>Tuned in. <b>Third digit: 4</b></p>`;
+  else h = `<h3>📻 Radio</h3><p>Listen to the static broadcast and identify the word.</p>
+       <button class="btn" onclick="say('ship', 0.8)">Play Audio</button>
+       <div class="opts" style="margin-top:16px"><button class="opt" onclick="escCheck('radio','sheep')">sheep</button><button class="opt" onclick="escCheck('radio','ship')">ship</button><button class="opt" onclick="escCheck('radio','sip')">sip</button></div>`;
+ } else if (id === 'poster') {
+  if (escS.poster) h = `<h3>📜 Poster</h3><p>Puzzle solved. <b>Fourth digit: 2</b></p>`;
+  else h = `<h3>📜 Poster</h3><p>A torn chart reads: Diphthongs = 8, Consonants = 24. <i>How many Monophthongs minus 10?</i></p>
+       <div class="opts"><button class="opt" onclick="escCheck('poster','12')">12</button><button class="opt" onclick="escCheck('poster','4')">4</button><button class="opt" onclick="escCheck('poster','2')">2</button></div>`;
+ }
+ d.innerHTML = h;
+}
+function escCheck(id, ans) {
+ if (id === 'pc' && ans === 'ʃ') { escS.pc = 1; toast('Correct! You found a clue.'); escTap('pc'); }
+ else if (id === 'safe' && ans === 'bird') { escS.safe = 1; toast('Safe unlocked!'); escTap('safe'); }
+ else if (id === 'radio' && ans === 'ship') { escS.radio = 1; toast('Correct word!'); escTap('radio'); }
+ else if (id === 'poster' && ans === '2') { escS.poster = 1; toast('Math correct!'); escTap('poster'); }
+ else toast('Incorrect. Try again!');
+}
+function escCheckPin() {
+ if ($('escPin').value === '4842') {
+  escDone = true; sv('escDone', true);
+  $('escDialog').innerHTML = `<h3>🎉 You Escaped!</h3><p class="lead">Congratulations ${user.n}! You have successfully used your phonetics knowledge to escape the lab.</p><button class="btn pri" style="margin-top:10px" onclick="go('home')">Return Home</button>`;
+  logEvent('escape_room'); burst();
+ } else {
+  $('escPinMsg').textContent = 'Wrong PIN. The door remains locked.';
+ }
+}
+
 /* portfolio */
-function renderPort(){$('pi').textContent=`${user.n} · Class number ${user.no}`;
+function renderPort(){
+ $('pi').textContent=`${user.n} · Class number ${user.no}`;
  const L=['','Need practice','Getting there','Confident'],c=[0,0,0,0];
  ALL.forEach(x=>c[rate[x.s]||0]++);
- $('ps').innerHTML=`<p><b>Recorded:</b> ${recd.size} of ${ALL.length} sounds · <b>Best quiz score:</b> ${best}/10</p><p>Confident: ${c[3]} · Getting there: ${c[2]} · Need practice: ${c[1]} · Not rated: ${c[0]}</p>`;
+ $('ps').innerHTML=`
+  <div class="port-grid">
+   <div class="port-card"><h3>🎙️ Sounds Recorded</h3><p class="big">${recd.size} <span style="font-size:1.1rem;color:var(--mu)">/ ${ALL.length}</span></p><p class="msg">Confident: ${c[3]} | Practice: ${c[1]}</p></div>
+   <div class="port-card"><h3>📝 Quiz Score</h3><p class="big">${best} <span style="font-size:1.1rem;color:var(--mu)">/ 10</span></p><p class="msg">Your best attempt</p></div>
+   <div class="port-card"><h3>🚪 Escape Room</h3><p class="big" style="font-size:${escDone?'1.4rem':'1.2rem'}; padding-top:10px; color:${escDone?'var(--ok)':'var(--no)'}">${escDone ? '🔓 Unlocked' : '🔒 Locked'}</p><p class="msg">${escDone ? 'Escaped the lab!' : 'Solve puzzles to escape'}</p></div>
+  </div>
+ `;
  const rated=ALL.filter(x=>rate[x.s]);
- $('pt').innerHTML=rated.length?'<tr><th>Sound</th><th>Example</th><th>Self-assessment</th></tr>'+rated.map(x=>`<tr><td>/${x.s}/</td><td>${x.w}</td><td>${L[rate[x.s]]}</td></tr>`).join(''):'<tr><td colspan="3" style="font-family:inherit;color:var(--mu);font-weight:400">Open a sound and rate your confidence to build your portfolio.</td></tr>'}
+ $('pt').innerHTML=rated.length
+  ? '<tr><th>Sound</th><th>Example</th><th>Self-assessment</th></tr>'+rated.map(x=>`<tr><td>/${x.s}/</td><td>${x.w}</td><td>${L[rate[x.s]]}</td></tr>`).join('')
+  : `<tr><td colspan="3" style="text-align:center; padding:40px 20px; background:var(--hl); border-radius:12px; border:2px dashed var(--p); border-bottom: none;">
+      <b style="font-size:1.3rem; color:var(--p2)">⚠️ Your Portfolio is Empty!</b><br><br>
+      <span style="color:var(--tx); line-height:1.6">You haven't evaluated your pronunciation yet.<br>To build your portfolio and track your progress:</span><br><br>
+      <span style="color:var(--mu); font-size:0.95rem">1. Go to the <b>📚 Sounds</b> section.<br>2. Tap on any sound card and listen.<br>3. Rate yourself using <b>Need practice</b>, <b>Getting there</b>, or <b>Confident</b>.</span>
+     </td></tr>`;
+}
 
 if(user)enter();
