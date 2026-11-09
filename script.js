@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 /* Paste your Google Apps Script Web App URL (ends with /exec) between the quotes to record logins and quiz scores. */
-const SHEET_URL='';
+const SHEET_URL='https://script.google.com/macros/s/AKfycbzTSPLDrh7sB8meN0x4gh0vfesL97xqpsbBNEHQEai1al2UjGFwCjP4cMRAPUOtR5io/exec';
 const ADMIN_HASH='8d008f8b98c07ba5072c02dc108351f872260bb6af85a016253f2e084909eba5'; /* SHA-256 of the admin password */
 /* true = students must record every sound in order to unlock the next step. Set to false to open every section. */
 const REQUIRE_RECORDING=true;
