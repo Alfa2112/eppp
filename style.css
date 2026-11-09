@@ -20,9 +20,6 @@ h1{font-size:1.5rem}
 .prog{height:8px;background:var(--bd);border-radius:8px;max-width:360px;margin:10px auto 4px;overflow:hidden}
 #bar{display:block;height:100%;width:0;background:var(--p2);transition:width .4s}
 #ptxt{font-size:.85rem;opacity:.9}
-nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
-nav button{background:transparent;border:2px solid currentColor;border-radius:20px;padding:6px 14px;font-weight:700}
-nav button.on,nav button:hover{background:var(--p);border-color:var(--p);color:var(--on)}
 main{max-width:920px;margin:0 auto;padding:24px 16px 48px}
 .pg{display:none}.pg.on{display:block}
 h2{color:var(--p);margin-bottom:8px}
@@ -98,6 +95,10 @@ a.btn{display:inline-block;text-decoration:none;margin-top:8px}
 .seg button:disabled,nav button:disabled{opacity:.5;cursor:not-allowed}
 nav button:disabled:hover{background:transparent;color:inherit;border-color:currentColor}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--cd);border:1px solid var(--p);color:var(--tx);padding:10px 18px;border-radius:12px;z-index:10;max-width:90%;text-align:center}
+/* escape room */
+.esc-room{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px;margin-top:16px}
+.esc-item{background:var(--cd);border:2px solid var(--bd);border-radius:12px;padding:24px 10px;text-align:center;font-size:1.1rem;font-weight:700}
+.esc-item:hover{border-color:var(--p);background:var(--hl);transform:translateY(-3px)}
 /* admin */
 header{position:relative}
 .adm{position:absolute;top:12px;right:12px;background:transparent;border:1px solid var(--bd);color:var(--mu);border-radius:16px;padding:4px 12px;font-size:.8rem;font-weight:700}
@@ -107,10 +108,6 @@ header{position:relative}
 /* mobile */
 body{padding-left:env(safe-area-inset-left,0px);padding-right:env(safe-area-inset-right,0px)}
 #login{min-height:100dvh}
-nav{flex-wrap:nowrap;justify-content:flex-start;overflow-x:auto;padding:0 12px 6px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-nav::-webkit-scrollbar{display:none}
-nav button{flex:0 0 auto;white-space:nowrap}
-nav button:first-child{margin-left:auto}nav button:last-child{margin-right:auto}
 dialog{max-height:calc(100dvh - 32px);overflow:auto}
 .tiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
 @media(max-width:600px){
@@ -166,3 +163,19 @@ dialog[open]::backdrop{animation:fade .25s ease}
 @keyframes rp{0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,.55)}50%{box-shadow:0 0 0 10px rgba(248,113,113,0)}}
 @keyframes conf{40%{transform:translate(calc(var(--x)*.7),var(--y)) rotate(calc(var(--r)*.5))}to{transform:translate(var(--x),calc(var(--y) + 80vh)) rotate(var(--r));opacity:0}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+/* Navbar Grouping */
+nav { display: flex; overflow-x: auto; gap: 8px; padding: 0 12px 10px; align-items: center; justify-content: flex-start; scrollbar-width: none; margin-top: 12px; }
+nav::-webkit-scrollbar { display: none; }
+nav button { background: transparent; border: 2px solid currentColor; border-radius: 20px; padding: 6px 14px; font-weight: 700; white-space: nowrap; }
+nav button.on, nav button:hover { background: var(--p); border-color: var(--p); color: var(--on); }
+.nav-grp { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.nav-grp + .nav-grp::before { content: ""; width: 2px; height: 18px; background: var(--bd); margin: 0 4px; border-radius: 2px; }
+.nav-lbl { font-size: .75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--mu); font-weight: 800; white-space: nowrap; margin-right: 4px; }
+
+/* Portfolio Dashboard */
+.port-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.port-card { background: var(--bg); border: 1px solid var(--bd); border-radius: 12px; padding: 18px 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+.port-card h3 { color: var(--mu); font-size: .85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.port-card .big { font-size: 2rem; font-weight: 800; color: var(--p2); line-height: 1.1; margin-bottom: 4px; }
+.port-card .msg { font-size: .8rem; color: var(--mu); margin: 0; min-height: 0; }
